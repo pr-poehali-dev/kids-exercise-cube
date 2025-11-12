@@ -47,6 +47,12 @@ const exercises = [
   }
 ];
 
+const vibrate = (pattern: number | number[]) => {
+  if ('vibrate' in navigator) {
+    navigator.vibrate(pattern);
+  }
+};
+
 export default function Index() {
   const [isRolling, setIsRolling] = useState(false);
   const [currentExercise, setCurrentExercise] = useState<number | null>(null);
@@ -75,6 +81,8 @@ export default function Index() {
   }, [showExercise]);
 
   const rollDice = () => {
+    vibrate([50, 30, 50, 30, 50]);
+    
     setIsRolling(true);
     setRotation({
       x: Math.random() * 720 + 360,
@@ -82,6 +90,7 @@ export default function Index() {
     });
 
     setTimeout(() => {
+      vibrate(100);
       const randomIndex = Math.floor(Math.random() * exercises.length);
       const randomReps = Math.floor(Math.random() * 7) + 4;
       setCurrentExercise(randomIndex);
@@ -95,6 +104,7 @@ export default function Index() {
   };
 
   const handleComplete = () => {
+    vibrate([100, 50, 100]);
     setShowExercise(false);
     setCurrentExercise(null);
   };
