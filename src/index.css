@@ -135,4 +135,115 @@
     -webkit-user-select: none;
     user-select: none;
   }
+
+  .confetti-piece {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    animation: confetti-fall 2s ease-out forwards;
+    border-radius: 2px;
+  }
+
+  @keyframes confetti-fall {
+    0% {
+      top: -10%;
+      opacity: 1;
+      transform: translateX(0) rotate(0deg);
+    }
+    100% {
+      top: 110%;
+      opacity: 0;
+      transform: translateX(calc(-50px + 50px * var(--random, 0)))
+        rotate(720deg);
+    }
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes wiggle {
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+    25% {
+      transform: rotate(-5deg);
+    }
+    75% {
+      transform: rotate(5deg);
+    }
+  }
+
+  @keyframes spin-3d {
+    0% {
+      transform: rotateX(0) rotateY(0);
+    }
+    100% {
+      transform: rotateX(360deg) rotateY(360deg);
+    }
+  }
+
+  @keyframes gradient {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes pulse-slow {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .animate-wiggle {
+    animation: wiggle 0.5s ease-in-out infinite;
+  }
+
+  .animate-spin-3d {
+    animation: spin-3d 2s linear;
+  }
+
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 10s ease infinite;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse-slow 2s ease-in-out infinite;
+  }
+
+  .animate-bounce-custom {
+    animation: float 1.5s ease-in-out infinite;
+  }
+
+  .hover-float:hover {
+    animation: float 1s ease-in-out infinite;
+  }
+
+  .glow-effect {
+    box-shadow: 0 0 20px rgba(147, 51, 234, 0.3);
+  }
+
+  .hover\:shadow-glow:hover {
+    box-shadow: 0 0 30px rgba(147, 51, 234, 0.5);
+  }
 }

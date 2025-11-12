@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
@@ -53,6 +53,46 @@ const vibrate = (pattern: number | number[]) => {
   }
 };
 
+const playSound = (frequency: number, duration: number, type: OscillatorType = 'sine') => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = frequency;
+    oscillator.type = type;
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + duration / 1000);
+  } catch (e) {
+    console.log('Audio not supported');
+  }
+};
+
+const playDiceRoll = () => {
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => {
+      playSound(200 + Math.random() * 200, 50, 'square');
+    }, i * 100);
+  }
+};
+
+const playSuccess = () => {
+  playSound(523, 100);
+  setTimeout(() => playSound(659, 100), 100);
+  setTimeout(() => playSound(784, 200), 200);
+};
+
+const playTick = () => {
+  playSound(800, 50, 'sine');
+};
+
 export default function Index() {
   const [isRolling, setIsRolling] = useState(false);
   const [currentExercise, setCurrentExercise] = useState<number | null>(null);
@@ -61,17 +101,24 @@ export default function Index() {
   const [timeLeft, setTimeLeft] = useState(10);
   const [canComplete, setCanComplete] = useState(false);
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [confettiPieces, setConfettiPieces] = useState<Array<{id: number, x: number, delay: number, color: string}>>([]);
 
   useEffect(() => {
     if (showExercise) {
+      playSuccess();
       setTimeLeft(10);
       setCanComplete(false);
       const timer = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             setCanComplete(true);
+            playSuccess();
             clearInterval(timer);
             return 0;
+          }
+          if (prev <= 4) {
+            playTick();
           }
           return prev - 1;
         });
@@ -82,6 +129,7 @@ export default function Index() {
 
   const rollDice = () => {
     vibrate([50, 30, 50, 30, 50]);
+    playDiceRoll();
     
     setIsRolling(true);
     setRotation({
@@ -91,6 +139,7 @@ export default function Index() {
 
     setTimeout(() => {
       vibrate(100);
+      playSound(400, 150, 'triangle');
       const randomIndex = Math.floor(Math.random() * exercises.length);
       const randomReps = Math.floor(Math.random() * 7) + 4;
       setCurrentExercise(randomIndex);
@@ -105,20 +154,50 @@ export default function Index() {
 
   const handleComplete = () => {
     vibrate([100, 50, 100]);
-    setShowExercise(false);
-    setCurrentExercise(null);
+    playSuccess();
+    
+    const pieces = Array.from({ length: 30 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      delay: Math.random() * 200,
+      color: ['#FF6B9D', '#8B5CF6', '#0EA5E9', '#FFA629', '#D946EF', '#4ADE80'][Math.floor(Math.random() * 6)]
+    }));
+    setConfettiPieces(pieces);
+    setShowConfetti(true);
+    
+    setTimeout(() => {
+      setShowConfetti(false);
+      setShowExercise(false);
+      setCurrentExercise(null);
+    }, 2000);
   };
 
   if (showExercise && currentExercise !== null) {
     const exercise = exercises[currentExercise];
     return (
       <div 
-        className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 animate-fade-in safe-area-inset"
+        className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 animate-fade-in safe-area-inset relative overflow-hidden"
         style={{
           background: `linear-gradient(135deg, ${exercise.color}40 0%, ${exercise.color}20 100%)`
         }}
       >
-        <div className="absolute top-4 right-4 sm:top-8 sm:right-8 bg-white rounded-2xl sm:rounded-3xl shadow-2xl px-4 py-2 sm:px-8 sm:py-4 animate-scale-in">
+        {showConfetti && (
+          <div className="absolute inset-0 pointer-events-none overflow-hidden z-50">
+            {confettiPieces.map((piece) => (
+              <div
+                key={piece.id}
+                className="confetti-piece"
+                style={{
+                  left: `${piece.x}%`,
+                  animationDelay: `${piece.delay}ms`,
+                  backgroundColor: piece.color
+                }}
+              />
+            ))}
+          </div>
+        )}
+        
+        <div className="absolute top-4 right-4 sm:top-8 sm:right-8 bg-white rounded-2xl sm:rounded-3xl shadow-2xl px-4 py-2 sm:px-8 sm:py-4 animate-scale-in animate-pulse-slow">
           <div className="text-4xl sm:text-6xl font-black" style={{ color: exercise.color }}>
             {repsCount}
           </div>
@@ -126,11 +205,11 @@ export default function Index() {
         </div>
 
         <Card className="max-w-2xl w-full bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-12 animate-scale-in mx-4">
-          <div className="text-7xl sm:text-9xl text-center mb-6 sm:mb-8 animate-bounce">
+          <div className="text-7xl sm:text-9xl text-center mb-6 sm:mb-8 animate-bounce-custom">
             {exercise.emoji}
           </div>
           
-          <h1 className="text-4xl sm:text-6xl font-black text-center mb-4 sm:mb-6" style={{ color: exercise.color }}>
+          <h1 className="text-4xl sm:text-6xl font-black text-center mb-4 sm:mb-6 animate-wiggle" style={{ color: exercise.color }}>
             {exercise.name}
           </h1>
           
@@ -140,7 +219,7 @@ export default function Index() {
 
           <div className="flex flex-col items-center gap-4 sm:gap-6">
             {!canComplete && (
-              <div className="text-xl sm:text-2xl font-bold text-gray-500">
+              <div className={`text-xl sm:text-2xl font-bold ${timeLeft <= 3 ? 'text-red-500 animate-pulse' : 'text-gray-500'}`}>
                 Подожди {timeLeft} сек... ⏳
               </div>
             )}
@@ -148,7 +227,7 @@ export default function Index() {
             <Button
               onClick={handleComplete}
               disabled={!canComplete}
-              className="text-2xl sm:text-3xl font-black py-6 px-12 sm:py-8 sm:px-16 rounded-2xl sm:rounded-3xl shadow-xl transition-all duration-300 active:scale-95 sm:hover:scale-110 disabled:opacity-50 disabled:scale-100 touch-manipulation"
+              className={`text-2xl sm:text-3xl font-black py-6 px-12 sm:py-8 sm:px-16 rounded-2xl sm:rounded-3xl shadow-xl transition-all duration-300 active:scale-95 sm:hover:scale-110 disabled:opacity-50 disabled:scale-100 touch-manipulation ${canComplete ? 'animate-wiggle' : ''}`}
               style={{
                 backgroundColor: canComplete ? exercise.color : '#ccc',
                 color: 'white'
@@ -163,8 +242,8 @@ export default function Index() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-purple-400 via-pink-400 to-orange-400 safe-area-inset">
-      <h1 className="text-4xl sm:text-7xl font-black text-white text-center mb-4 sm:mb-8 drop-shadow-2xl animate-fade-in px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-purple-400 via-pink-400 to-orange-400 safe-area-inset animate-gradient">
+      <h1 className="text-4xl sm:text-7xl font-black text-white text-center mb-4 sm:mb-8 drop-shadow-2xl animate-fade-in px-4 animate-float">
         Весёлая Зарядка! 🌟
       </h1>
       
@@ -174,13 +253,13 @@ export default function Index() {
 
       <div className="relative mb-8 sm:mb-16 perspective-1000">
         <div 
-          className={`w-36 h-36 sm:w-48 sm:h-48 transition-transform duration-2000 ease-out ${isRolling ? 'animate-bounce' : ''}`}
+          className={`w-36 h-36 sm:w-48 sm:h-48 transition-transform duration-2000 ease-out ${isRolling ? 'animate-spin-3d' : 'animate-float'}`}
           style={{
             transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`,
             transformStyle: 'preserve-3d'
           }}
         >
-          <div className="w-full h-full bg-white rounded-2xl sm:rounded-3xl shadow-2xl flex items-center justify-center border-4 sm:border-8 border-purple-300">
+          <div className="w-full h-full bg-white rounded-2xl sm:rounded-3xl shadow-2xl flex items-center justify-center border-4 sm:border-8 border-purple-300 glow-effect">
             <div className="text-6xl sm:text-8xl">{currentExercise !== null ? exercises[currentExercise].emoji : '🎲'}</div>
           </div>
         </div>
@@ -189,7 +268,7 @@ export default function Index() {
       <Button
         onClick={rollDice}
         disabled={isRolling}
-        className="text-2xl sm:text-4xl font-black py-6 px-12 sm:py-10 sm:px-20 rounded-full bg-white text-purple-600 shadow-2xl active:scale-95 sm:hover:scale-110 transition-all duration-300 disabled:opacity-50 disabled:scale-100 animate-scale-in touch-manipulation"
+        className="text-2xl sm:text-4xl font-black py-6 px-12 sm:py-10 sm:px-20 rounded-full bg-white text-purple-600 shadow-2xl active:scale-95 sm:hover:scale-110 transition-all duration-300 disabled:opacity-50 disabled:scale-100 animate-scale-in touch-manipulation hover:shadow-glow"
       >
         {isRolling ? 'Бросаю... 🎲' : 'Бросить кубик! 🎯'}
       </Button>
@@ -198,7 +277,7 @@ export default function Index() {
         {exercises.map((exercise, index) => (
           <div
             key={exercise.id}
-            className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-6 shadow-lg text-center active:scale-95 transition-all"
+            className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-6 shadow-lg text-center active:scale-95 transition-all hover-float"
             style={{ animationDelay: `${index * 0.1}s` }}
           >
             <div className="text-3xl sm:text-5xl mb-1 sm:mb-2">{exercise.emoji}</div>
