@@ -123,6 +123,7 @@ export default function Index() {
   const [timeLeft, setTimeLeft] = useState(10);
   const [canComplete, setCanComplete] = useState(false);
   const [diceFace, setDiceFace] = useState(0);
+  const [showSurprise, setShowSurprise] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [confettiPieces, setConfettiPieces] = useState<Array<{id: number, x: number, delay: number, color: string}>>([]);
   const [completedExercises, setCompletedExercises] = useState<Set<number>>(() => {
@@ -196,6 +197,7 @@ export default function Index() {
     playDiceRollSound();
     
     setIsRolling(true);
+    setShowSurprise(false);
     
     let rotationCount = 0;
     const animationInterval = setInterval(() => {
@@ -209,16 +211,17 @@ export default function Index() {
     setTimeout(() => {
       vibrate(100);
       playSound(400, 150, 'triangle');
-      const randomIndex = Math.floor(Math.random() * exercises.length);
-      const randomReps = Math.floor(Math.random() * 7) + 4;
-      setCurrentExercise(randomIndex);
-      setDiceFace(randomIndex);
-      setRepsCount(randomReps);
+      setShowSurprise(true);
       setIsRolling(false);
       
       setTimeout(() => {
+        const randomIndex = Math.floor(Math.random() * exercises.length);
+        const randomReps = Math.floor(Math.random() * 7) + 4;
+        setCurrentExercise(randomIndex);
+        setDiceFace(randomIndex);
+        setRepsCount(randomReps);
         setShowExercise(true);
-      }, 500);
+      }, 1000);
     }, 2000);
   };
 
@@ -487,10 +490,14 @@ export default function Index() {
         >
           <div className="dice">
             <div className="dice-face dice-front">
-              <div className="flex flex-col items-center justify-center">
-                <div className="text-6xl sm:text-8xl mb-2">🎁</div>
-                <div className="text-xl sm:text-3xl font-black text-purple-600">Сюрприз!</div>
-              </div>
+              {showSurprise ? (
+                <div className="flex flex-col items-center justify-center animate-scale-in">
+                  <div className="text-6xl sm:text-8xl mb-2">🎁</div>
+                  <div className="text-xl sm:text-3xl font-black text-purple-600">Сюрприз!</div>
+                </div>
+              ) : (
+                <div className="text-6xl sm:text-8xl">🎲</div>
+              )}
             </div>
             <div className="dice-face dice-back">
               <div className="text-6xl sm:text-8xl">{exercises[0].emoji}</div>
