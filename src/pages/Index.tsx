@@ -125,19 +125,40 @@ export default function Index() {
   const [diceFace, setDiceFace] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const [confettiPieces, setConfettiPieces] = useState<Array<{id: number, x: number, delay: number, color: string}>>([]);
-  const [completedExercises, setCompletedExercises] = useState<Set<number>>(new Set());
-  const [achievements, setAchievements] = useState<Achievement[]>([
-    { id: 'jump', title: 'Кенгуру 🦘', description: 'Выполнил прыжки', icon: '🦘', unlocked: false },
-    { id: 'squat', title: 'Лягушонок 🐸', description: 'Выполнил приседания', icon: '🐸', unlocked: false },
-    { id: 'bend', title: 'Волна 🌊', description: 'Выполнил наклоны', icon: '🌊', unlocked: false },
-    { id: 'arms', title: 'Орёл 🦅', description: 'Выполнил махи руками', icon: '🦅', unlocked: false },
-    { id: 'turn', title: 'Торнадо 🌪️', description: 'Выполнил повороты', icon: '🌪️', unlocked: false },
-    { id: 'run', title: 'Спринтер 🏃', description: 'Выполнил бег на месте', icon: '🏃', unlocked: false },
-    { id: 'master', title: 'Мастер Зарядки 🏆', description: 'Выполнил все упражнения!', icon: '🏆', unlocked: false }
-  ]);
+  const [completedExercises, setCompletedExercises] = useState<Set<number>>(() => {
+    const saved = localStorage.getItem('completedExercises');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+  const [achievements, setAchievements] = useState<Achievement[]>(() => {
+    const saved = localStorage.getItem('achievements');
+    return saved ? JSON.parse(saved) : [
+      { id: 'jump', title: 'Кенгуру 🦘', description: 'Выполнил прыжки', icon: '🦘', unlocked: false },
+      { id: 'squat', title: 'Лягушонок 🐸', description: 'Выполнил приседания', icon: '🐸', unlocked: false },
+      { id: 'bend', title: 'Волна 🌊', description: 'Выполнил наклоны', icon: '🌊', unlocked: false },
+      { id: 'arms', title: 'Орёл 🦅', description: 'Выполнил махи руками', icon: '🦅', unlocked: false },
+      { id: 'turn', title: 'Торнадо 🌪️', description: 'Выполнил повороты', icon: '🌪️', unlocked: false },
+      { id: 'run', title: 'Спринтер 🏃', description: 'Выполнил бег на месте', icon: '🏃', unlocked: false },
+      { id: 'master', title: 'Мастер Зарядки 🏆', description: 'Выполнил все упражнения!', icon: '🏆', unlocked: false }
+    ];
+  });
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
   const [showAchievements, setShowAchievements] = useState(false);
-  const [totalCompleted, setTotalCompleted] = useState(0);
+  const [totalCompleted, setTotalCompleted] = useState(() => {
+    const saved = localStorage.getItem('totalCompleted');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('completedExercises', JSON.stringify(Array.from(completedExercises)));
+  }, [completedExercises]);
+
+  useEffect(() => {
+    localStorage.setItem('achievements', JSON.stringify(achievements));
+  }, [achievements]);
+
+  useEffect(() => {
+    localStorage.setItem('totalCompleted', totalCompleted.toString());
+  }, [totalCompleted]);
 
   useEffect(() => {
     if (showExercise) {
@@ -375,7 +396,12 @@ export default function Index() {
               </Button>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="mb-6 bg-purple-100 rounded-xl p-4 text-center">
+              <div className="text-5xl font-black text-purple-600 mb-2">{totalCompleted}</div>
+              <div className="text-lg font-bold text-purple-800">Всего выполнено упражнений</div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               {achievements.map((ach) => (
                 <div
                   key={ach.id}
@@ -394,6 +420,18 @@ export default function Index() {
                 </div>
               ))}
             </div>
+
+            <Button
+              onClick={() => {
+                if (confirm('Вы уверены? Весь прогресс будет удалён!')) {
+                  localStorage.clear();
+                  window.location.reload();
+                }
+              }}
+              className="w-full bg-red-500 text-white hover:bg-red-600 py-3 rounded-xl font-bold"
+            >
+              Сбросить прогресс
+            </Button>
           </Card>
         </div>
       )}
