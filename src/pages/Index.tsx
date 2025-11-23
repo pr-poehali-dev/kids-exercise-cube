@@ -137,6 +137,7 @@ export default function Index() {
   ]);
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
   const [showAchievements, setShowAchievements] = useState(false);
+  const [totalCompleted, setTotalCompleted] = useState(0);
 
   useEffect(() => {
     if (showExercise) {
@@ -234,6 +235,7 @@ export default function Index() {
       const newCompleted = new Set(completedExercises);
       newCompleted.add(currentExercise);
       setCompletedExercises(newCompleted);
+      setTotalCompleted(prev => prev + 1);
       unlockAchievement(currentExercise);
     }
     
@@ -342,13 +344,22 @@ export default function Index() {
         </div>
       )}
 
-      <div className="absolute top-4 left-4 sm:top-8 sm:left-8 z-40">
+      <div className="absolute top-4 left-4 sm:top-8 sm:left-8 z-40 flex flex-col gap-3">
         <Button
           onClick={() => setShowAchievements(!showAchievements)}
-          className="bg-white text-purple-600 rounded-full p-3 sm:p-4 shadow-xl hover:scale-110 transition-all"
+          className="bg-white text-purple-600 rounded-full p-3 sm:p-4 shadow-xl hover:scale-110 transition-all relative"
         >
           <Icon name="Trophy" size={24} />
         </Button>
+        
+        <div className="bg-white rounded-2xl shadow-xl px-4 py-3 sm:px-6 sm:py-4 text-center animate-pulse-slow">
+          <div className="text-3xl sm:text-4xl font-black text-purple-600">
+            {totalCompleted}
+          </div>
+          <div className="text-xs sm:text-sm font-bold text-gray-600 whitespace-nowrap">
+            выполнено
+          </div>
+        </div>
       </div>
 
       {showAchievements && (
