@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import Icon from '@/components/ui/icon';
 
 const exercises = [
   {
@@ -47,6 +48,14 @@ const exercises = [
   }
 ];
 
+interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+}
+
 const vibrate = (pattern: number | number[]) => {
   if ('vibrate' in navigator) {
     navigator.vibrate(pattern);
@@ -75,18 +84,31 @@ const playSound = (frequency: number, duration: number, type: OscillatorType = '
   }
 };
 
-const playDiceRoll = () => {
-  for (let i = 0; i < 5; i++) {
+const playDiceRollSound = () => {
+  const notes = [200, 250, 300, 350, 400, 450, 500, 550];
+  notes.forEach((freq, i) => {
     setTimeout(() => {
-      playSound(200 + Math.random() * 200, 50, 'square');
-    }, i * 100);
-  }
+      playSound(freq, 100, 'square');
+    }, i * 200);
+  });
+  
+  setTimeout(() => {
+    playSound(600, 150, 'sine');
+    setTimeout(() => playSound(650, 150, 'sine'), 80);
+  }, notes.length * 200);
 };
 
 const playSuccess = () => {
   playSound(523, 100);
   setTimeout(() => playSound(659, 100), 100);
   setTimeout(() => playSound(784, 200), 200);
+};
+
+const playAchievement = () => {
+  playSound(659, 150);
+  setTimeout(() => playSound(784, 150), 150);
+  setTimeout(() => playSound(880, 150), 300);
+  setTimeout(() => playSound(1047, 300), 450);
 };
 
 const playTick = () => {
@@ -100,9 +122,21 @@ export default function Index() {
   const [repsCount, setRepsCount] = useState(0);
   const [timeLeft, setTimeLeft] = useState(10);
   const [canComplete, setCanComplete] = useState(false);
-  const [rotation, setRotation] = useState({ x: 0, y: 0 });
+  const [diceFace, setDiceFace] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const [confettiPieces, setConfettiPieces] = useState<Array<{id: number, x: number, delay: number, color: string}>>([]);
+  const [completedExercises, setCompletedExercises] = useState<Set<number>>(new Set());
+  const [achievements, setAchievements] = useState<Achievement[]>([
+    { id: 'jump', title: 'Кенгуру 🦘', description: 'Выполнил прыжки', icon: '🦘', unlocked: false },
+    { id: 'squat', title: 'Лягушонок 🐸', description: 'Выполнил приседания', icon: '🐸', unlocked: false },
+    { id: 'bend', title: 'Волна 🌊', description: 'Выполнил наклоны', icon: '🌊', unlocked: false },
+    { id: 'arms', title: 'Орёл 🦅', description: 'Выполнил махи руками', icon: '🦅', unlocked: false },
+    { id: 'turn', title: 'Торнадо 🌪️', description: 'Выполнил повороты', icon: '🌪️', unlocked: false },
+    { id: 'run', title: 'Спринтер 🏃', description: 'Выполнил бег на месте', icon: '🏃', unlocked: false },
+    { id: 'master', title: 'Мастер Зарядки 🏆', description: 'Выполнил все упражнения!', icon: '🏆', unlocked: false }
+  ]);
+  const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
+  const [showAchievements, setShowAchievements] = useState(false);
 
   useEffect(() => {
     if (showExercise) {
@@ -129,13 +163,18 @@ export default function Index() {
 
   const rollDice = () => {
     vibrate([50, 30, 50, 30, 50]);
-    playDiceRoll();
+    playDiceRollSound();
     
     setIsRolling(true);
-    setRotation({
-      x: Math.random() * 720 + 360,
-      y: Math.random() * 720 + 360
-    });
+    
+    let rotationCount = 0;
+    const animationInterval = setInterval(() => {
+      setDiceFace((prev) => (prev + 1) % 6);
+      rotationCount++;
+      if (rotationCount >= 12) {
+        clearInterval(animationInterval);
+      }
+    }, 150);
 
     setTimeout(() => {
       vibrate(100);
@@ -143,6 +182,7 @@ export default function Index() {
       const randomIndex = Math.floor(Math.random() * exercises.length);
       const randomReps = Math.floor(Math.random() * 7) + 4;
       setCurrentExercise(randomIndex);
+      setDiceFace(randomIndex);
       setRepsCount(randomReps);
       setIsRolling(false);
       
@@ -152,9 +192,50 @@ export default function Index() {
     }, 2000);
   };
 
+  const unlockAchievement = (exerciseId: number) => {
+    const achievementIds = ['jump', 'squat', 'bend', 'arms', 'turn', 'run'];
+    const achievementId = achievementIds[exerciseId];
+    
+    setAchievements(prev => {
+      const updated = prev.map(ach => 
+        ach.id === achievementId ? { ...ach, unlocked: true } : ach
+      );
+      
+      const unlockedAch = updated.find(a => a.id === achievementId);
+      if (unlockedAch && !achievements.find(a => a.id === achievementId)?.unlocked) {
+        setNewAchievement(unlockedAch);
+        playAchievement();
+        vibrate([100, 50, 100, 50, 100]);
+        
+        setTimeout(() => setNewAchievement(null), 3000);
+      }
+      
+      const allExercisesUnlocked = updated.slice(0, 6).every(a => a.unlocked);
+      if (allExercisesUnlocked && !updated[6].unlocked) {
+        setTimeout(() => {
+          const masterAch = { ...updated[6], unlocked: true };
+          setAchievements(prev => prev.map((a, i) => i === 6 ? masterAch : a));
+          setNewAchievement(masterAch);
+          playAchievement();
+          vibrate([100, 50, 100, 50, 200]);
+          setTimeout(() => setNewAchievement(null), 3000);
+        }, 3500);
+      }
+      
+      return updated;
+    });
+  };
+
   const handleComplete = () => {
     vibrate([100, 50, 100]);
     playSuccess();
+    
+    if (currentExercise !== null) {
+      const newCompleted = new Set(completedExercises);
+      newCompleted.add(currentExercise);
+      setCompletedExercises(newCompleted);
+      unlockAchievement(currentExercise);
+    }
     
     const pieces = Array.from({ length: 30 }, (_, i) => ({
       id: i,
@@ -243,6 +324,69 @@ export default function Index() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-purple-400 via-pink-400 to-orange-400 safe-area-inset animate-gradient">
+      {newAchievement && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-scale-in">
+          <Card className="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 border-4 border-yellow-400">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="text-4xl sm:text-5xl">{newAchievement.icon}</div>
+              <div>
+                <div className="text-lg sm:text-xl font-black text-yellow-600">
+                  Достижение разблокировано!
+                </div>
+                <div className="text-base sm:text-lg font-bold text-gray-800">
+                  {newAchievement.title}
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      <div className="absolute top-4 left-4 sm:top-8 sm:left-8 z-40">
+        <Button
+          onClick={() => setShowAchievements(!showAchievements)}
+          className="bg-white text-purple-600 rounded-full p-3 sm:p-4 shadow-xl hover:scale-110 transition-all"
+        >
+          <Icon name="Trophy" size={24} />
+        </Button>
+      </div>
+
+      {showAchievements && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowAchievements(false)}>
+          <Card className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-3xl sm:text-4xl font-black text-purple-600">Достижения 🏆</h2>
+              <Button
+                onClick={() => setShowAchievements(false)}
+                className="bg-gray-200 text-gray-800 rounded-full p-2"
+              >
+                <Icon name="X" size={24} />
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {achievements.map((ach) => (
+                <div
+                  key={ach.id}
+                  className={`p-4 rounded-xl border-2 transition-all ${
+                    ach.unlocked
+                      ? 'bg-gradient-to-br from-yellow-100 to-yellow-50 border-yellow-400'
+                      : 'bg-gray-100 border-gray-300 opacity-50'
+                  }`}
+                >
+                  <div className="text-4xl mb-2">{ach.icon}</div>
+                  <div className="text-lg font-bold text-gray-800">{ach.title}</div>
+                  <div className="text-sm text-gray-600">{ach.description}</div>
+                  {ach.unlocked && (
+                    <div className="mt-2 text-xs font-bold text-green-600">✓ Разблокировано</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
       <h1 className="text-4xl sm:text-7xl font-black text-white text-center mb-4 sm:mb-8 drop-shadow-2xl animate-fade-in px-4 animate-float">
         Весёлая Зарядка! 🌟
       </h1>
@@ -251,16 +395,29 @@ export default function Index() {
         Брось кубик и узнай, какое упражнение тебя ждёт!
       </p>
 
-      <div className="relative mb-8 sm:mb-16 perspective-1000">
+      <div className="relative mb-8 sm:mb-16 perspective-2000">
         <div 
-          className={`w-36 h-36 sm:w-48 sm:h-48 transition-transform duration-2000 ease-out ${isRolling ? 'animate-spin-3d' : 'animate-float'}`}
-          style={{
-            transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`,
-            transformStyle: 'preserve-3d'
-          }}
+          className={`dice-container ${isRolling ? 'rolling' : ''}`}
         >
-          <div className="w-full h-full bg-white rounded-2xl sm:rounded-3xl shadow-2xl flex items-center justify-center border-4 sm:border-8 border-purple-300 glow-effect">
-            <div className="text-6xl sm:text-8xl">{currentExercise !== null ? exercises[currentExercise].emoji : '🎲'}</div>
+          <div className="dice">
+            <div className="dice-face dice-front">
+              <div className="text-6xl sm:text-8xl">{exercises[0].emoji}</div>
+            </div>
+            <div className="dice-face dice-back">
+              <div className="text-6xl sm:text-8xl">{exercises[1].emoji}</div>
+            </div>
+            <div className="dice-face dice-right">
+              <div className="text-6xl sm:text-8xl">{exercises[2].emoji}</div>
+            </div>
+            <div className="dice-face dice-left">
+              <div className="text-6xl sm:text-8xl">{exercises[3].emoji}</div>
+            </div>
+            <div className="dice-face dice-top">
+              <div className="text-6xl sm:text-8xl">{exercises[4].emoji}</div>
+            </div>
+            <div className="dice-face dice-bottom">
+              <div className="text-6xl sm:text-8xl">{exercises[5].emoji}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -277,9 +434,16 @@ export default function Index() {
         {exercises.map((exercise, index) => (
           <div
             key={exercise.id}
-            className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-6 shadow-lg text-center active:scale-95 transition-all hover-float"
+            className={`bg-white rounded-xl sm:rounded-2xl p-3 sm:p-6 shadow-lg text-center active:scale-95 transition-all hover-float relative ${
+              completedExercises.has(index) ? 'ring-4 ring-green-400' : ''
+            }`}
             style={{ animationDelay: `${index * 0.1}s` }}
           >
+            {completedExercises.has(index) && (
+              <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-1 shadow-lg">
+                <Icon name="Check" size={16} />
+              </div>
+            )}
             <div className="text-3xl sm:text-5xl mb-1 sm:mb-2">{exercise.emoji}</div>
             <div className="text-xs sm:text-lg font-bold" style={{ color: exercise.color }}>
               {exercise.name}
