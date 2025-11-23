@@ -487,22 +487,25 @@ export default function Index() {
         >
           <div className="dice">
             <div className="dice-face dice-front">
-              <div className="text-6xl sm:text-8xl">{exercises[0].emoji}</div>
+              <div className="flex flex-col items-center justify-center">
+                <div className="text-6xl sm:text-8xl mb-2">🎁</div>
+                <div className="text-xl sm:text-3xl font-black text-purple-600">Сюрприз!</div>
+              </div>
             </div>
             <div className="dice-face dice-back">
-              <div className="text-6xl sm:text-8xl">{exercises[1].emoji}</div>
+              <div className="text-6xl sm:text-8xl">{exercises[0].emoji}</div>
             </div>
             <div className="dice-face dice-right">
-              <div className="text-6xl sm:text-8xl">{exercises[2].emoji}</div>
+              <div className="text-6xl sm:text-8xl">{exercises[1].emoji}</div>
             </div>
             <div className="dice-face dice-left">
-              <div className="text-6xl sm:text-8xl">{exercises[3].emoji}</div>
+              <div className="text-6xl sm:text-8xl">{exercises[2].emoji}</div>
             </div>
             <div className="dice-face dice-top">
-              <div className="text-6xl sm:text-8xl">{exercises[4].emoji}</div>
+              <div className="text-6xl sm:text-8xl">{exercises[3].emoji}</div>
             </div>
             <div className="dice-face dice-bottom">
-              <div className="text-6xl sm:text-8xl">{exercises[5].emoji}</div>
+              <div className="text-6xl sm:text-8xl">{exercises[4].emoji}</div>
             </div>
           </div>
         </div>
