@@ -147,6 +147,10 @@ export default function Index() {
     const saved = localStorage.getItem('totalCompleted');
     return saved ? parseInt(saved, 10) : 0;
   });
+  const [exerciseStats, setExerciseStats] = useState<Record<number, number>>(() => {
+    const saved = localStorage.getItem('exerciseStats');
+    return saved ? JSON.parse(saved) : {};
+  });
 
   useEffect(() => {
     localStorage.setItem('completedExercises', JSON.stringify(Array.from(completedExercises)));
@@ -159,6 +163,10 @@ export default function Index() {
   useEffect(() => {
     localStorage.setItem('totalCompleted', totalCompleted.toString());
   }, [totalCompleted]);
+
+  useEffect(() => {
+    localStorage.setItem('exerciseStats', JSON.stringify(exerciseStats));
+  }, [exerciseStats]);
 
   useEffect(() => {
     if (showExercise) {
@@ -257,6 +265,10 @@ export default function Index() {
       newCompleted.add(currentExercise);
       setCompletedExercises(newCompleted);
       setTotalCompleted(prev => prev + 1);
+      setExerciseStats(prev => ({
+        ...prev,
+        [currentExercise]: (prev[currentExercise] || 0) + 1
+      }));
       unlockAchievement(currentExercise);
     }
     
@@ -401,6 +413,31 @@ export default function Index() {
               <div className="text-lg font-bold text-purple-800">Всего выполнено упражнений</div>
             </div>
 
+            <div className="mb-6">
+              <h3 className="text-2xl font-black text-gray-800 mb-4">📊 Статистика по упражнениям</h3>
+              <div className="space-y-3">
+                {exercises.map((exercise, index) => {
+                  const count = exerciseStats[index] || 0;
+                  return (
+                    <div
+                      key={exercise.id}
+                      className="bg-white rounded-lg p-3 border-2 border-gray-200 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-3xl">{exercise.emoji}</div>
+                        <div>
+                          <div className="font-bold text-gray-800">{exercise.name}</div>
+                        </div>
+                      </div>
+                      <div className="text-2xl font-black" style={{ color: exercise.color }}>
+                        {count}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               {achievements.map((ach) => (
                 <div
@@ -497,8 +534,24 @@ export default function Index() {
             <div className="text-xs sm:text-lg font-bold" style={{ color: exercise.color }}>
               {exercise.name}
             </div>
+            {exerciseStats[index] > 0 && (
+              <div className="mt-1 sm:mt-2 text-xs sm:text-sm font-bold text-gray-500">
+                ×{exerciseStats[index]}
+              </div>
+            )}
           </div>
         ))}
+      </div>
+
+      <div className="mt-8 sm:mt-12 text-center animate-fade-in px-4">
+        <div className="bg-white/20 backdrop-blur-sm rounded-2xl px-6 py-4 inline-block shadow-lg">
+          <p className="text-white text-sm sm:text-base font-bold drop-shadow-lg">
+            Разработала: Инструктор по физической культуре
+          </p>
+          <p className="text-white text-base sm:text-lg font-black drop-shadow-lg mt-1">
+            Гайрунова Валерия Александровна
+          </p>
+        </div>
       </div>
     </div>
   );
